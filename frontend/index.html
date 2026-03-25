@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+<h1>AI Voice Platform</h1>
+
+<button onclick="testAPI()">Test Backend</button>
+
+<p id="result"></p>
+
+<script>
+
+async function testAPI(){
+
+const response = await fetch("https://YOUR-RENDER-URL/api/test")
+
+const data = await response.json()
+
+document.getElementById("result").innerText = data.status
+
+}
+
+</script>
+
+</body>
+
+</html>
