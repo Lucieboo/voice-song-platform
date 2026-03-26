@@ -3,21 +3,36 @@
 
 <body>
 
-<h1>AI Voice Platform</h1>
+<h1>AI Voice Generator 🎤</h1>
 
-<button onclick="testAPI()">Test Backend</button>
+<input id="text" placeholder="Enter text here">
+<br><br>
 
-<p id="result"></p>
+<button onclick="generateVoice()">Generate Voice</button>
+
+<br><br>
+
+<audio id="audio" controls></audio>
 
 <script>
 
-async function testAPI(){
+async function generateVoice(){
 
-const response = await fetch("https://YOUR-RENDER-URL/api/test")
+const text = document.getElementById("text").value
 
-const data = await response.json()
+const response = await fetch(fetch("https://voice-song-platform.onrender.com/generate-voice"), {
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({text})
+})
 
-document.getElementById("result").innerText = data.status
+const blob = await response.blob()
+
+const audioURL = URL.createObjectURL(blob)
+
+document.getElementById("audio").src = audioURL
 
 }
 
