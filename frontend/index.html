@@ -1,26 +1,17 @@
-<!DOCTYPE html>
-<html>
-
-<body>
-
-<h1>AI Voice Generator 🎤</h1>
-
-<input id="text" placeholder="Enter text here">
-<br><br>
-
-<button onclick="generateVoice()">Generate Voice</button>
-
-<br><br>
-
-<audio id="audio" controls></audio>
-
 <script>
 
 async function generateVoice(){
 
 const text = document.getElementById("text").value
 
-const response = await fetch(fetch("https://voice-song-platform.onrender.com/generate-voice"), {
+if(!text){
+alert("Enter text first")
+return
+}
+
+try{
+
+const response = await fetch("https://voice-song-platform.vercel.app/", {
 method: "POST",
 headers: {
 "Content-Type": "application/json"
@@ -28,16 +19,23 @@ headers: {
 body: JSON.stringify({text})
 })
 
+if(!response.ok){
+throw new Error("Server error")
+}
+
 const blob = await response.blob()
 
 const audioURL = URL.createObjectURL(blob)
 
-document.getElementById("audio").src = audioURL
+const audio = document.getElementById("audio")
+audio.src = audioURL
+audio.play()
+
+}catch(error){
+console.error(error)
+alert("Error generating voice")
+}
 
 }
 
 </script>
-
-</body>
-
-</html>
