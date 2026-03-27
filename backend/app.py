@@ -5,19 +5,29 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, resources={
-    r"/*": {
-        "origins": "*"
-    }
-})
+
+# ✅ Proper CORS setup
+CORS(app)
+
+@app.after_request
+def after_request(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return response
+
 
 @app.route("/")
 def home():
     return jsonify({"message": "AI Voice + Song Backend Running"})
 
+
 # 🎤 TEXT TO SPEECH
-@app.route("/generate-voice", methods=["POST"])
+@app.route("/generate-voice", methods=["POST", "OPTIONS"])
 def generate_voice():
+    if request.method == "OPTIONS":
+        return "", 200
+
     data = request.get_json()
     text = data.get("text")
 
@@ -32,18 +42,14 @@ def generate_voice():
     return send_file(filename, mimetype="audio/mpeg")
 
 
-# 🎶 SONG GENERATION (Hugging Face)
-@app.route("/generate-song", methods=["POST"])
+# 🎶 SONG GENERATOR
+@app.route("/generate-song", methods=["POST", "OPTIONS"])
 def generate_song():
+    if request.method == "OPTIONS":
+        return "", 200
+
     data = request.get_json()
     lyrics = data.get("lyrics")
-
-    @app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-    return response
 
     if not lyrics:
         return jsonify({"error": "No lyrics provided"}), 400
@@ -66,6 +72,6 @@ def after_request(response):
     return send_file("song.wav", mimetype="audio/wav")
 
 
-# REQUIRED FOR RENDER
+# 🚀 RUN
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
