@@ -6,7 +6,7 @@ import os
 
 app = Flask(__name__)
 
-# ✅ Proper CORS setup
+# ✅ CORS
 CORS(app)
 
 @app.after_request
@@ -29,17 +29,21 @@ def generate_voice():
         return "", 200
 
     data = request.get_json()
-    text = data.get("text")
 
-    if not text:
+    if not data or "text" not in data:
         return jsonify({"error": "No text provided"}), 400
 
-    filename = "voice.mp3"
+    text = data.get("text")
 
-    tts = gTTS(text)
-    tts.save(filename)
+    try:
+        filename = "voice.mp3"
+        tts = gTTS(text)
+        tts.save(filename)
 
-    return send_file(filename, mimetype="audio/mpeg")
+        return send_file(filename, mimetype="audio/mpeg")
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # 🎶 SONG GENERATOR
@@ -49,27 +53,50 @@ def generate_song():
         return "", 200
 
     data = request.get_json()
-    lyrics = data.get("lyrics")
 
-    if not lyrics:
+    if not data or "lyrics" not in data:
         return jsonify({"error": "No lyrics provided"}), 400
 
-    API_URL = "https://api-inference.huggingface.co/models/facebook/musicgen-small"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
-    }
+    lyrics = data.get("lyrics")
 
-    response = requests.post(API_URL, headers=headers, json={
-        "inputs": lyrics
-    })
+    try:
+        HF_TOKEN = os.getenv("HF_TOKEN")
 
-    if response.status_code != 200:
-        return jsonify({"error": "Song generation failed"}), 500
+        if not HF_TOKEN:
+            return jsonify({"error": "Missing HuggingFace token"}), 500
 
-    with open("song.wav", "wb") as f:
-        f.write(response.content)
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/facebook/musicgen-small",
+            headers={"Authorization": f"Bearer {HF_TOKEN}"},
+            json={"inputs": lyrics},
+            timeout=60
+        )
 
-    return send_file("song.wav", mimetype="audio/wav")
+        print("STATUS:", response.status_code)
+
+        # ❌ If AI fails → fallback to voice (VERY IMPORTANT)
+        if response.status_code != 200:
+            print("FALLBACK TO VOICE")
+
+            tts = gTTS(lyrics)
+            tts.save("song.mp3")
+
+            return send_file("song.mp3", mimetype="audio/mpeg")
+
+        # ✅ Save AI audio
+        with open("song.wav", "wb") as f:
+            f.write(response.content)
+
+        return send_file("song.wav", mimetype="audio/wav")
+
+    except Exception as e:
+        print("ERROR:", str(e))
+
+        # 🔥 FINAL fallback (never crash)
+        tts = gTTS(lyrics)
+        tts.save("song.mp3")
+
+        return send_file("song.mp3", mimetype="audio/mpeg")
 
 
 # 🚀 RUN
