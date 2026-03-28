@@ -2,116 +2,182 @@
 <html>
 
 <head>
-<title>AI Voice + Song Generator</title>
+<title>AI Voice & Song Studio</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    padding: 40px;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    cursor: pointer;
+    background: #1e293b;
+    color: white;
+    border-radius: 8px;
+}
+
+.tabs button.active {
+    background: #3b82f6;
+}
+
+.box {
+    margin-top: 20px;
+    padding: 20px;
+    background: #1e293b;
+    border-radius: 12px;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+}
+
+button.generate {
+    margin-top: 15px;
+    padding: 12px;
+    width: 100%;
+    background: #3b82f6;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button.generate:hover {
+    background: #2563eb;
+}
+
+.loader {
+    display: none;
+    margin-top: 10px;
+}
+</style>
+
 </head>
 
-<body style="font-family:sans-serif; text-align:center; padding:40px">
+<body>
 
-<h1>🎤 AI Voice Generator</h1>
+<div class="container">
 
-<input id="text" placeholder="Enter text..." style="width:300px; padding:10px">
-<br><br>
+<h1>🎤 AI Voice & Song Studio</h1>
 
-<button onclick="generateVoice()">Generate Voice</button>
+<div class="tabs">
+    <button onclick="switchTab('voice')" id="voiceTab" class="active">Voice</button>
+    <button onclick="switchTab('song')" id="songTab">Song</button>
+</div>
 
-<br><br>
+<!-- VOICE -->
+<div id="voiceBox" class="box">
+
+<input id="text" placeholder="Enter text...">
+
+<button class="generate" onclick="generateVoice()">Generate Voice</button>
+
+<div class="loader" id="voiceLoader">⏳ Generating...</div>
 
 <audio id="audio" controls></audio>
-<br><br>
 
-<a id="downloadVoice" style="display:none;">Download Voice</a>
+</div>
 
-<hr><br>
+<!-- SONG -->
+<div id="songBox" class="box" style="display:none;">
 
-<h1>🎶 AI Song Generator</h1>
+<textarea id="lyrics" placeholder="Write lyrics..."></textarea>
 
-<textarea id="lyrics" placeholder="Write lyrics..." style="width:300px; height:100px;"></textarea>
-<br><br>
+<button class="generate" onclick="generateSong()">Generate Song</button>
 
-<button onclick="generateSong()">Generate Song</button>
-
-<br><br>
+<div class="loader" id="songLoader">⏳ Creating music...</div>
 
 <audio id="songAudio" controls></audio>
-<br><br>
 
-<a id="downloadSong" style="display:none;">Download Song</a>
+</div>
+
+</div>
 
 <script>
 
-const BACKEND_URL = "https://voice-backend-p59i.onrender.com"
+const BACKEND_URL = "https://voice-song-platform.onrender.com"
 
-// 🎤 TEXT TO SPEECH
+// TAB SWITCH
+function switchTab(tab){
+
+document.getElementById("voiceBox").style.display = tab === "voice" ? "block" : "none"
+document.getElementById("songBox").style.display = tab === "song" ? "block" : "none"
+
+document.getElementById("voiceTab").classList.remove("active")
+document.getElementById("songTab").classList.remove("active")
+
+document.getElementById(tab + "Tab").classList.add("active")
+}
+
+
+// 🎤 VOICE
 async function generateVoice(){
 
 const text = document.getElementById("text").value
+if(!text) return alert("Enter text")
 
-if(!text){
-alert("Enter text")
-return
-}
+document.getElementById("voiceLoader").style.display = "block"
 
 const response = await fetch(BACKEND_URL + "/generate-voice", {
 method: "POST",
-headers: {
-"Content-Type": "application/json"
-},
+headers: {"Content-Type": "application/json"},
 body: JSON.stringify({ text })
 })
 
 const blob = await response.blob()
-
 const url = URL.createObjectURL(blob)
 
-const audio = document.getElementById("audio")
-audio.src = url
-audio.play()
+document.getElementById("audio").src = url
+document.getElementById("audio").play()
 
-const download = document.getElementById("downloadVoice")
-download.href = url
-download.download = "voice.mp3"
-download.style.display = "block"
-download.innerText = "⬇ Download Voice"
-
+document.getElementById("voiceLoader").style.display = "none"
 }
 
 
-// 🎶 SONG GENERATOR
+// 🎶 SONG
 async function generateSong(){
 
 const lyrics = document.getElementById("lyrics").value
+if(!lyrics) return alert("Enter lyrics")
 
-if(!lyrics){
-alert("Enter lyrics")
-return
-}
+document.getElementById("songLoader").style.display = "block"
 
 const response = await fetch(BACKEND_URL + "/generate-song", {
 method: "POST",
-headers: {
-"Content-Type": "application/json"
-},
+headers: {"Content-Type": "application/json"},
 body: JSON.stringify({ lyrics })
 })
 
 const blob = await response.blob()
-
 const url = URL.createObjectURL(blob)
 
-const audio = document.getElementById("songAudio")
-audio.src = url
-audio.play()
+document.getElementById("songAudio").src = url
+document.getElementById("songAudio").play()
 
-const download = document.getElementById("downloadSong")
-download.href = url
-download.download = "song.wav"
-download.style.display = "block"
-download.innerText = "⬇ Download Song"
-
+document.getElementById("songLoader").style.display = "none"
 }
 
 </script>
 
 </body>
-
 </html>
