@@ -2,73 +2,64 @@
 <html>
 
 <head>
-<title>AI Voice & Song Studio</title>
+<title>AI Studio</title>
 
 <style>
 body {
-    font-family: Arial, sans-serif;
+    margin: 0;
+    font-family: Arial;
+    display: flex;
     background: #0f172a;
     color: white;
-    text-align: center;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 200px;
+    background: #020617;
+    height: 100vh;
+    padding: 20px;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #1e293b;
+    color: white;
+    border: none;
+    border-radius: 6px;
+}
+
+/* MAIN */
+.main {
+    flex: 1;
     padding: 40px;
 }
 
-.container {
-    max-width: 500px;
-    margin: auto;
-}
-
-h1 {
-    margin-bottom: 20px;
-}
-
-.tabs button {
-    padding: 10px 20px;
-    margin: 5px;
-    border: none;
-    cursor: pointer;
-    background: #1e293b;
-    color: white;
-    border-radius: 8px;
-}
-
-.tabs button.active {
-    background: #3b82f6;
-}
-
 .box {
-    margin-top: 20px;
-    padding: 20px;
     background: #1e293b;
-    border-radius: 12px;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
 }
 
-input, textarea, select {
+input, textarea {
     width: 100%;
     padding: 10px;
     margin-top: 10px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: none;
 }
 
-button.generate {
-    margin-top: 15px;
-    padding: 12px;
+button {
+    margin-top: 10px;
+    padding: 10px;
     width: 100%;
     background: #3b82f6;
     border: none;
     color: white;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-button.generate:hover {
-    background: #2563eb;
-}
-
-.loader {
-    display: none;
-    margin-top: 10px;
+    border-radius: 6px;
 }
 </style>
 
@@ -76,116 +67,114 @@ button.generate:hover {
 
 <body>
 
-<div class="container">
+<div class="sidebar">
+    <button onclick="show('auth')">👤 Login</button>
+    <button onclick="show('voice')">🎤 Voice</button>
+    <button onclick="show('song')">🎶 Song</button>
+    <button onclick="show('image')">🖼️ Image</button>
+</div>
 
-<h1>🎤 AI Voice & Song Studio</h1>
+<div class="main">
 
-<div class="tabs">
-    <button onclick="switchTab('voice')" id="voiceTab" class="active">Voice</button>
-    <button onclick="switchTab('song')" id="songTab">Song</button>
+<!-- AUTH -->
+<div id="authBox" class="box">
+<h2>Login / Signup</h2>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<button onclick="signup()">Signup</button>
+<button onclick="login()">Login</button>
+
 </div>
 
 <!-- VOICE -->
-<div id="voiceBox" class="box">
-
-<input id="text" placeholder="Enter text...">
-
-<button class="generate" onclick="generateVoice()">Generate Voice</button>
-
-<div class="loader" id="voiceLoader">⏳ Generating...</div>
-
+<div id="voiceBox" class="box" style="display:none;">
+<input id="text" placeholder="Text">
+<button onclick="generateVoice()">Generate</button>
 <audio id="audio" controls></audio>
-
 </div>
 
 <!-- SONG -->
 <div id="songBox" class="box" style="display:none;">
-
-<select id="style">
-    <option value="Afrobeat">Afrobeat 🔥</option>
-    <option value="Gospel">Gospel 🙏</option>
-    <option value="Love">Love ❤️</option>
-    <option value="Country">Country 🤠</option>
-</select>
-
-<textarea id="lyrics" placeholder="Write lyrics..."></textarea>
-
-<button class="generate" onclick="generateSong()">Generate Song</button>
-
-<div class="loader" id="songLoader">⏳ Creating music...</div>
-
+<textarea id="lyrics"></textarea>
+<button onclick="generateSong()">Generate</button>
 <audio id="songAudio" controls></audio>
+</div>
 
+<!-- IMAGE -->
+<div id="imageBox" class="box" style="display:none;">
+<input id="prompt">
+<button onclick="generateImage()">Generate</button>
+<img id="img" width="100%">
 </div>
 
 </div>
 
 <script>
 
-const BACKEND_URL = "https://voice-song-platform.onrender.com"
+const API = "https://voice-song-platform.onrender.com"
 
-// TAB SWITCH
-function switchTab(tab){
-
-document.getElementById("voiceBox").style.display = tab === "voice" ? "block" : "none"
-document.getElementById("songBox").style.display = tab === "song" ? "block" : "none"
-
-document.getElementById("voiceTab").classList.remove("active")
-document.getElementById("songTab").classList.remove("active")
-
-document.getElementById(tab + "Tab").classList.add("active")
+function show(tab){
+document.getElementById("authBox").style.display = tab==="auth"?"block":"none"
+document.getElementById("voiceBox").style.display = tab==="voice"?"block":"none"
+document.getElementById("songBox").style.display = tab==="song"?"block":"none"
+document.getElementById("imageBox").style.display = tab==="image"?"block":"none"
 }
 
+// AUTH
+async function signup(){
+await fetch(API+"/signup",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+email:email.value,
+password:password.value
+})
+})
+alert("Signup done")
+}
 
-// 🎤 VOICE
+async function login(){
+const res = await fetch(API+"/login",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+email:email.value,
+password:password.value
+})
+})
+alert("Login done")
+}
+
+// VOICE
 async function generateVoice(){
-
-const text = document.getElementById("text").value
-if(!text) return alert("Enter text")
-
-document.getElementById("voiceLoader").style.display = "block"
-
-const response = await fetch(BACKEND_URL + "/generate-voice", {
-method: "POST",
-headers: {"Content-Type": "application/json"},
-body: JSON.stringify({ text })
+const res = await fetch(API+"/generate-voice",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({text:text.value})
 })
-
-const blob = await response.blob()
-const url = URL.createObjectURL(blob)
-
-document.getElementById("audio").src = url
-document.getElementById("audio").play()
-
-document.getElementById("voiceLoader").style.display = "none"
+audio.src = URL.createObjectURL(await res.blob())
 }
 
-
-// 🎶 SONG
+// SONG
 async function generateSong(){
-
-const lyrics = document.getElementById("lyrics").value
-const style = document.getElementById("style").value
-
-if(!lyrics) return alert("Enter lyrics")
-
-document.getElementById("songLoader").style.display = "block"
-
-const finalPrompt = style + " style song: " + lyrics
-
-const response = await fetch(BACKEND_URL + "/generate-song", {
-method: "POST",
-headers: {"Content-Type": "application/json"},
-body: JSON.stringify({ lyrics: finalPrompt })
+const res = await fetch(API+"/generate-song",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({lyrics:lyrics.value})
 })
+songAudio.src = URL.createObjectURL(await res.blob())
+}
 
-const blob = await response.blob()
-const url = URL.createObjectURL(blob)
-
-document.getElementById("songAudio").src = url
-document.getElementById("songAudio").play()
-
-document.getElementById("songLoader").style.display = "none"
+// IMAGE
+async function generateImage(){
+const res = await fetch(API+"/generate-image",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({prompt:prompt.value})
+})
+img.src = URL.createObjectURL(await res.blob())
 }
 
 </script>

@@ -6,7 +6,6 @@ import os
 
 app = Flask(__name__)
 
-# ✅ CORS FIX (VERY IMPORTANT)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.after_request
@@ -17,56 +16,74 @@ def after_request(response):
     return response
 
 
+# 🔐 TEMP USER STORAGE
+users = {}
+
 @app.route("/")
 def home():
-    return jsonify({"message": "AI Voice + Song Backend Running"})
+    return jsonify({"message": "AI Studio Backend Running"})
 
 
-# 🎤 TEXT TO SPEECH
+# =========================
+# 🔐 AUTH ROUTES
+# =========================
+
+@app.route("/signup", methods=["POST"])
+def signup():
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    if email in users:
+        return jsonify({"error": "User already exists"}), 400
+
+    users[email] = password
+    return jsonify({"message": "Signup successful"})
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    if users.get(email) != password:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    return jsonify({"message": "Login successful"})
+
+
+# =========================
+# 🎤 VOICE
+# =========================
 @app.route("/generate-voice", methods=["POST", "OPTIONS"])
 def generate_voice():
     if request.method == "OPTIONS":
         return "", 200
 
-    data = request.get_json()
-    text = data.get("text")
-
-    if not text:
-        return jsonify({"error": "No text provided"}), 400
-
-    filename = "voice.mp3"
+    text = request.json.get("text")
 
     tts = gTTS(text)
-    tts.save(filename)
+    tts.save("voice.mp3")
 
-    return send_file(filename, mimetype="audio/mpeg")
+    return send_file("voice.mp3", mimetype="audio/mpeg")
 
 
-# 🎶 SONG GENERATOR
+# =========================
+# 🎶 SONG
+# =========================
 @app.route("/generate-song", methods=["POST", "OPTIONS"])
 def generate_song():
     if request.method == "OPTIONS":
         return "", 200
 
-    data = request.get_json()
-    lyrics = data.get("lyrics")
-
-    if not lyrics:
-        return jsonify({"error": "No lyrics provided"}), 400
-
-    # 🔥 IMPROVED PROMPT
-    prompt = f"Generate a musical song with instruments. {lyrics}"
+    lyrics = request.json.get("lyrics")
 
     response = requests.post(
         "https://api-inference.huggingface.co/models/facebook/musicgen-small",
-        headers={
-            "Authorization": f"Bearer {os.getenv('HF_TOKEN')}"
-        },
-        json={"inputs": prompt}
+        headers={"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"},
+        json={"inputs": lyrics}
     )
-
-    if response.status_code != 200:
-        return jsonify({"error": response.text}), 500
 
     with open("song.wav", "wb") as f:
         f.write(response.content)
@@ -74,6 +91,27 @@ def generate_song():
     return send_file("song.wav", mimetype="audio/wav")
 
 
-# 🚀 RUN
+# =========================
+# 🖼️ IMAGE
+# =========================
+@app.route("/generate-image", methods=["POST", "OPTIONS"])
+def generate_image():
+    if request.method == "OPTIONS":
+        return "", 200
+
+    prompt = request.json.get("prompt")
+
+    response = requests.post(
+        "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2",
+        headers={"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"},
+        json={"inputs": prompt}
+    )
+
+    with open("image.png", "wb") as f:
+        f.write(response.content)
+
+    return send_file("image.png", mimetype="image/png")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
