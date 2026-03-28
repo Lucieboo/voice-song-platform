@@ -43,7 +43,7 @@ h1 {
     border-radius: 12px;
 }
 
-input, textarea {
+input, textarea, select {
     width: 100%;
     padding: 10px;
     margin-top: 10px;
@@ -100,6 +100,13 @@ button.generate:hover {
 
 <!-- SONG -->
 <div id="songBox" class="box" style="display:none;">
+
+<select id="style">
+    <option value="Afrobeat">Afrobeat 🔥</option>
+    <option value="Gospel">Gospel 🙏</option>
+    <option value="Love">Love ❤️</option>
+    <option value="Country">Country 🤠</option>
+</select>
 
 <textarea id="lyrics" placeholder="Write lyrics..."></textarea>
 
@@ -158,14 +165,18 @@ document.getElementById("voiceLoader").style.display = "none"
 async function generateSong(){
 
 const lyrics = document.getElementById("lyrics").value
+const style = document.getElementById("style").value
+
 if(!lyrics) return alert("Enter lyrics")
 
 document.getElementById("songLoader").style.display = "block"
 
+const finalPrompt = style + " style song: " + lyrics
+
 const response = await fetch(BACKEND_URL + "/generate-song", {
 method: "POST",
 headers: {"Content-Type": "application/json"},
-body: JSON.stringify({ lyrics })
+body: JSON.stringify({ lyrics: finalPrompt })
 })
 
 const blob = await response.blob()
